@@ -5,11 +5,11 @@ Metrics (all on identical text for every model, data/eval.parquet):
         start token (the one its tokenizer adds by default; BOS, else EOS) so *every* character is predicted,
         and the denominator is the length of the original text, not of a decode. Tokenizer-independent.
   fertility  tokens per whitespace word, and chars/token (no special tokens).
-  Belebele  zero-shot, 900 questions per variety. Context "P: {passage}\nQ: {question}\nA:" then " {option}";
+  Belebele  zero-shot, 900 questions per variety (MSA, Egyptian, Najdi, English); Alyah: 1,173 Emirati questions. Context "P: {passage}\nQ: {question}\nA:" then " {option}";
         score = log p(option | context) / characters of option, so options compete fairly across tokenizers.
 Fairness checks saved in meta.json: decode round-trip rate and unknown-token rate (a lossy tokenizer
 gets an unfair BPC advantage), and that no document was truncated.
-Per-document bits and per-question correctness are saved, so differences between models can be paired.
+Per-document bits (docs.parquet) and per-question correctness (mcq_items.parquet) are saved, so differences between models can be paired.
 
 Usage: CUDA_VISIBLE_DEVICES=0 python src/diag.py --model Qwen3-8B [--max-docs 20] [--keep-weights]
 """
@@ -108,38 +108,47 @@ df["tokens"], df["words"] = [len(s) for s in ids], df.text.str.split().str.len()
 unk = tok.unk_token_id
 df["unk"] = [sum(t == unk for t in s) if unk is not None else 0 for s in ids]
 df["roundtrip"] = [tok.decode(s, skip_special_tokens=False, clean_up_tokenization_spaces=False) == t for s, t in zip(ids, df.text)]
-df[["set", "doc", "bits", "chars", "tokens", "words", "unk", "roundtrip"]].to_parquet(f"{out}/docs.parquet", index=False)
-g = df.groupby("set").agg(bits=("bits", "sum"), chars=("chars", "sum"), tokens=("tokens", "sum"),
+df[["dialect", "set", "doc", "bits", "chars", "tokens", "words", "unk", "roundtrip"]].to_parquet(f"{out}/docs.parquet", index=False)
+g = df.groupby(["dialect", "set"]).agg(bits=("bits", "sum"), chars=("chars", "sum"), tokens=("tokens", "sum"),
                           words=("words", "sum"), docs=("doc", "size"), unk=("unk", "sum"), roundtrip=("roundtrip", "mean"))
 g["bpc"], g["fertility"], g["chars_per_token"] = g.bits / g.chars, g.tokens / g.words, g.chars / g.tokens
 g.reset_index().to_csv(f"{out}/bpc.csv", index=False)
 print(a.model, "BPC\n", g[["bpc", "fertility", "roundtrip"]].round(3).to_string(), flush=True)
 t_bpc = time.time() - t0
 
-# ---------- Belebele ----------
+# ---------- multiple choice: Belebele (MSA, Egyptian, Najdi, English) + Alyah (Emirati) ----------
+def mcq():
+    """yields (bench, lang, qid, context, [4 options], answer index)"""
+    for lang in BELEBELE:
+        qs = [json.loads(l) for l in open(hf_hub_download("facebook/belebele", f"data/{lang}.jsonl", repo_type="dataset"))]
+        for q in qs[:a.max_docs or None]:
+            yield ("belebele", lang, f"{q['link']}|{q['question_number']}", f"P: {q['flores_passage']}\nQ: {q['question']}\nA:",
+                   [q[f"mc_answer{j}"] for j in range(1, 5)], int(q["correct_answer_num"]) - 1)
+    al = pd.read_parquet(hf_hub_download("tiiuae/alyah-emirati-benchmark", "data/test-00000-of-00001.parquet", repo_type="dataset"))
+    for k, q in al.head(a.max_docs or None).iterrows():
+        yield ("alyah", "emirati", f"{k}|{q.category}", f"Q: {q.query}\nA:",
+               [q[f"option_{j}"] for j in range(1, 5)], int(q.correct_answer) - 1)
+
+
 items, seqs, meta = [], [], []
-for lang in BELEBELE:
-    qs = [json.loads(l) for l in open(hf_hub_download("facebook/belebele", f"data/{lang}.jsonl", repo_type="dataset"))]
-    if a.max_docs:
-        qs = qs[:a.max_docs]
-    ctxs = enc([f"P: {q['flores_passage']}\nQ: {q['question']}\nA:" for q in qs])
-    for q, c in zip(qs, ctxs):
-        opts = [" " + q[f"mc_answer{j}"].strip() for j in range(1, 5)]
-        for j, o in enumerate(enc(opts)):
-            seqs.append(prefix + c + o); meta.append((len(items), j, len(prefix) + len(c) - 1, len(opts[j].strip())))
-        items.append(dict(lang=lang, qid=f"{q['link']}|{q['question_number']}", answer=int(q["correct_answer_num"]) - 1))
+for bench, lang, qid, ctx, options, ans in mcq():
+    c = enc([ctx])[0]
+    opts = [" " + str(o).strip() for o in options]
+    for j, o in enumerate(enc(opts)):
+        seqs.append(prefix + c + o); meta.append((len(items), j, len(prefix) + len(c) - 1, len(opts[j].strip())))
+    items.append(dict(bench=bench, lang=lang, qid=qid, answer=ans))
 score = np.full((len(items), 4), -np.inf)
 for bi in batches(np.array([len(s) for s in seqs])):
     for i, lp in zip(bi, logprobs([seqs[i] for i in bi])):
         it, j, start, nch = meta[i]
-        score[it, j] = lp[start:].sum() / max(nch, 1)
-bel = pd.DataFrame(items)
-bel["pred"] = score.argmax(1)
-bel["correct"] = bel.pred == bel.answer
-bel.to_parquet(f"{out}/belebele_items.parquet", index=False)
-acc = bel.groupby("lang").correct.agg(["mean", "size"]).rename(columns={"mean": "acc", "size": "n"}).reset_index()
+        score[it, j] = lp[start:].sum() / max(nch, 1)  # log-likelihood per character of the option
+mc = pd.DataFrame(items)
+mc["pred"] = score.argmax(1)
+mc["correct"] = mc.pred == mc.answer
+mc.to_parquet(f"{out}/mcq_items.parquet", index=False)
+acc = mc.groupby(["bench", "lang"]).correct.agg(["mean", "size"]).rename(columns={"mean": "acc", "size": "n"}).reset_index()
 acc["ci95"] = 1.96 * np.sqrt(acc.acc * (1 - acc.acc) / acc.n)
-acc.to_csv(f"{out}/belebele.csv", index=False)
+acc.to_csv(f"{out}/mcq.csv", index=False)
 print(acc.round(3).to_string(index=False), flush=True)
 
 json.dump(dict(model=a.model, repo=cfg["repo"], stage=cfg["stage"], group=cfg["group"], n_params=n_params,
@@ -150,4 +159,11 @@ json.dump(dict(model=a.model, repo=cfg["repo"], stage=cfg["stage"], group=cfg["g
                minutes_total=round((time.time() - t0) / 60, 1)), open(f"{out}/meta.json", "w"), indent=1)
 print("done", a.model, f"{(time.time() - t0) / 60:.1f} min", flush=True)
 if not a.keep_weights:  # disk is tight: weights are re-downloadable, results are not
-    del model; shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+    del model
+    repo_dir = os.path.dirname(os.path.dirname(path))
+    for root, _, fs in os.walk(repo_dir):  # snapshot files are symlinks into a blob store that may be shared
+        for f in fs:
+            target = os.path.realpath(os.path.join(root, f))
+            if target != os.path.join(root, f) and os.path.exists(target):
+                os.remove(target)
+    shutil.rmtree(repo_dir, ignore_errors=True)

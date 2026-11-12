@@ -38,17 +38,7 @@ MODELS = [
 ]
 BY_NAME = {m["name"]: m for m in MODELS}
 
-# Held-out varieties (FLORES+ codes); Belebele covers the ones marked in BELEBELE.
-VARIETIES = {
-    "eng_Latn": "English", "arb_Arab": "MSA", "arz_Arab": "Egyptian", "apd_Arab": "Sudanese",
-    "apc_Arab_nort3139": "N. Levantine", "apc_Arab_sout3123": "S. Levantine", "acm_Arab": "Mesopotamian",
-    "ars_Arab": "Najdi", "acq_Arab": "Ta'izzi-Adeni", "ary_Arab": "Moroccan", "aeb_Arab": "Tunisian",
-    "apc_Arab": "Levantine",
-    "padic_msa": "MSA", "padic_algiers": "Algerian (Algiers)", "padic_annaba": "Algerian (Annaba)",
-    "padic_palestinian": "Palestinian", "padic_syrian": "Syrian",
-}
-BELEBELE = ["eng_Latn", "arb_Arab", "arz_Arab", "ary_Arab", "ars_Arab", "apc_Arab", "acm_Arab"]
-
-
-def is_msa(variety):
-    return variety in ("arb_Arab", "padic_msa")
+# Belebele varieties (FLORES+ codes): MSA, Egyptian, Najdi (Saudi), English. Emirati/Gulf: Alyah (in diag.py).
+BELEBELE = ["arb_Arab", "arz_Arab", "ars_Arab", "eng_Latn"]
+DIALECTS = ["Egyptian", "Saudi", "Gulf"]          # target dialects, each reported on its own
+REFERENCES = ["MSA", "English"]
