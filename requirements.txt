@@ -14,3 +14,4 @@ pyarrow==26.0.1
 scipy==1.18.1
 matplotlib==3.11.2
 flash-linear-attention   # fast kernels for Qwen3.5's gated-delta layers
+tabulate                 # markdown tables in summarize.py
