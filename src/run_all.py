@@ -15,7 +15,7 @@ ap.add_argument("models", nargs="*")
 a = ap.parse_args()
 todo = [BY_NAME[m] for m in a.models] if a.models else list(MODELS)
 todo = [m for m in todo if not os.path.exists(f"{B}/results/models/{m['name']}/meta.json")]
-free, running, failed = a.gpus.split(","), {}, []
+free, running, failed, tries = a.gpus.split(","), {}, [], {}
 os.makedirs(f"{B}/logs", exist_ok=True)
 while todo or running:
     for name, (p, gpus, gb) in list(running.items()):
@@ -23,7 +23,11 @@ while todo or running:
             free += gpus; del running[name]
             print(time.strftime("%H:%M"), "finished" if p.returncode == 0 else f"FAILED ({p.returncode})", name, flush=True)
             if p.returncode:
-                failed.append(name)
+                tries[name] = tries.get(name, 0) + 1
+                if tries[name] <= 2:  # transient errors (DNS, Hub timeouts): retry twice
+                    todo.append(BY_NAME[name])
+                else:
+                    failed.append(name)
     used = sum(gb for _, _, gb in running.values())
     for m in list(todo):
         if len(free) >= m["gpus"] and used + m["size_gb"] <= a.disk_gb:
