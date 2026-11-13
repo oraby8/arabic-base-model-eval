@@ -3,7 +3,7 @@ checkpoint wherever one is public, since the question is which model is the best
 
 stage: "base" = pretrained only; "post" = only an instruction-tuned/chat checkpoint is public
        (its BPC on raw text is usually somewhat worse than its base would be; read it with that in mind).
-gpus:  GPUs needed in bf16 on 46 GB cards (L40S). size_gb: download size (disk budget).
+gpus:  GPUs needed in bf16 on 46 GB cards (L40S), with weights capped at 36 GiB per card. size_gb: download size (disk budget).
 active_b: active parameters for MoE models (billions).
 remote: needs trust_remote_code (custom modelling code from the repo).
 
@@ -32,7 +32,7 @@ MODELS = [
     dict(name="Fanar-1-9B", repo="QCRI/Fanar-1-9B", stage="base", group="arabic", gpus=1, size_gb=18.5),
     dict(name="Fanar-2-27B", repo="QCRI/Fanar-2-27B-Instruct", stage="post", group="arabic", gpus=2, size_gb=54.0),
     dict(name="Karnak-6B", repo="Applied-Innovation-Center/Karnak-6B-v1.0", stage="base", group="arabic", gpus=1, size_gb=11.9),
-    dict(name="Karnak-40B", repo="Applied-Innovation-Center/Karnak-40B-v1.0", stage="base", group="arabic", gpus=2, size_gb=81.3),
+    dict(name="Karnak-40B", repo="Applied-Innovation-Center/Karnak-40B-v1.0", stage="base", group="arabic", gpus=3, size_gb=81.3),
     dict(name="Atlas-Chat-9B", repo="MBZUAI-Paris/Atlas-Chat-9B", stage="post", group="arabic", gpus=1, size_gb=18.5),
     dict(name="Nile-Chat-12B", repo="MBZUAI-Paris/Nile-Chat-12B", stage="post", group="arabic", gpus=1, size_gb=23.5),
 ]

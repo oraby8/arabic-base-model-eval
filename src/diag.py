@@ -13,7 +13,7 @@ Per-document bits (docs.parquet) and per-question correctness (mcq_items.parquet
 
 Usage: CUDA_VISIBLE_DEVICES=0 python src/diag.py --model Qwen3-8B [--max-docs 20] [--keep-weights]
 """
-import argparse, json, math, os, shutil, time
+import argparse, atexit, glob, json, math, os, shutil, time
 import numpy as np
 import pandas as pd
 import torch
@@ -37,11 +37,33 @@ files = [s.rfilename for s in HfApi().model_info(cfg["repo"]).siblings]
 ignore = ["original/*", "metal/*", "*.gguf", "*.pth", "consolidated*"]
 if any(f.endswith(".safetensors") for f in files):
     ignore.append("*.bin")
+from huggingface_hub.constants import HF_HUB_CACHE
+repo_dir = os.path.join(HF_HUB_CACHE, "models--" + cfg["repo"].replace("/", "--"))
+
+
+def drop_weights():
+    """Delete this model's files, including blobs in the (shared) blob store and partial downloads.
+    Runs at exit even when the job fails, so a failed job never leaves tens of GB behind."""
+    if a.keep_weights:
+        return
+    for root, _, fs in os.walk(repo_dir):
+        for f in fs:
+            target = os.path.realpath(os.path.join(root, f))
+            if target != os.path.join(root, f) and os.path.exists(target):
+                os.remove(target)
+    shutil.rmtree(repo_dir, ignore_errors=True)
+    for f in glob.glob(os.path.join(HF_HUB_CACHE, "blobs", "*.incomplete")) + glob.glob(os.path.join(repo_dir, "blobs", "*.incomplete")):
+        os.remove(f)
+
+
+atexit.register(drop_weights)
 path = snapshot_download(cfg["repo"], ignore_patterns=ignore)
 from transformers import AutoModelForCausalLM, AutoTokenizer
 remote = cfg.get("remote", False)
 tok = AutoTokenizer.from_pretrained(path, trust_remote_code=remote)
-model = AutoModelForCausalLM.from_pretrained(path, dtype=torch.bfloat16, device_map="auto",
+# leave ~8 GB per card for activations and the [batch, length, vocab] logits (vocabularies reach 262K)
+max_memory = {i: "36GiB" for i in range(torch.cuda.device_count())}
+model = AutoModelForCausalLM.from_pretrained(path, dtype=torch.bfloat16, device_map="auto", max_memory=max_memory,
                                              trust_remote_code=remote).eval()
 dev = next(model.parameters()).device
 n_params = sum(p.numel() for p in model.parameters())
@@ -60,9 +82,21 @@ def enc(texts):
     return tok(texts, add_special_tokens=False).input_ids
 
 
-@torch.no_grad()
 def logprobs(seqs):
-    """list of id lists -> list of float arrays: log p(seq[t] | seq[<t]) for t >= 1 (natural log)."""
+    """list of id lists -> list of float arrays: log p(seq[t] | seq[<t]) for t >= 1 (natural log).
+    On CUDA OOM the batch is split in half and retried (results are identical, only slower)."""
+    try:
+        return _logprobs(seqs)
+    except torch.OutOfMemoryError:
+        if len(seqs) == 1:
+            raise
+        torch.cuda.empty_cache()
+        h = len(seqs) // 2
+        return logprobs(seqs[:h]) + logprobs(seqs[h:])
+
+
+@torch.no_grad()
+def _logprobs(seqs):
     L = max(len(s) for s in seqs)
     x = torch.full((len(seqs), L), PAD, dtype=torch.long)
     m = torch.zeros((len(seqs), L), dtype=torch.long)
@@ -158,12 +192,3 @@ json.dump(dict(model=a.model, repo=cfg["repo"], stage=cfg["stage"], group=cfg["g
                gpus=torch.cuda.device_count(), minutes_load=round(t_load / 60, 1), minutes_bpc=round(t_bpc / 60, 1),
                minutes_total=round((time.time() - t0) / 60, 1)), open(f"{out}/meta.json", "w"), indent=1)
 print("done", a.model, f"{(time.time() - t0) / 60:.1f} min", flush=True)
-if not a.keep_weights:  # disk is tight: weights are re-downloadable, results are not
-    del model
-    repo_dir = os.path.dirname(os.path.dirname(path))
-    for root, _, fs in os.walk(repo_dir):  # snapshot files are symlinks into a blob store that may be shared
-        for f in fs:
-            target = os.path.realpath(os.path.join(root, f))
-            if target != os.path.join(root, f) and os.path.exists(target):
-                os.remove(target)
-    shutil.rmtree(repo_dir, ignore_errors=True)
