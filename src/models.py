@@ -6,6 +6,7 @@ stage: "base" = pretrained only; "post" = only an instruction-tuned/chat checkpo
 gpus:  GPUs needed in bf16 on 46 GB cards (L40S), with weights capped at 36 GiB per card. size_gb: download size (disk budget).
 active_b: active parameters for MoE models (billions).
 remote: needs trust_remote_code (custom modelling code from the repo).
+tok_budget: padded tokens per forward batch (default 12,288; lower for large vocabularies / big models).
 
 Not evaluated (weights larger than the server's free disk/VRAM):
   Llama-4-Scout-17B-16E (217 GB), DeepSeek-V3 (~690 GB), Command-A (222 GB).
@@ -17,12 +18,12 @@ MODELS = [
     dict(name="Llama-3.1-8B", repo="meta-llama/Llama-3.1-8B", stage="base", group="global", gpus=1, size_gb=16.1),
     dict(name="Qwen2.5-7B", repo="Qwen/Qwen2.5-7B", stage="base", group="global", gpus=1, size_gb=15.2),
     dict(name="Qwen3-8B", repo="Qwen/Qwen3-8B-Base", stage="base", group="global", gpus=1, size_gb=16.4),
-    dict(name="Qwen3.5-9B", repo="Qwen/Qwen3.5-9B-Base", stage="base", group="global", gpus=1, size_gb=19.3),
+    dict(name="Qwen3.5-9B", repo="Qwen/Qwen3.5-9B-Base", stage="base", group="global", gpus=1, size_gb=19.3, tok_budget=4096),
     dict(name="Gemma-3-12B", repo="google/gemma-3-12b-pt", stage="base", group="global", gpus=1, size_gb=24.4),
-    dict(name="Gemma-4-31B", repo="google/gemma-4-31B", stage="base", group="global", gpus=2, size_gb=62.5),
-    dict(name="Falcon-H1-7B", repo="tiiuae/Falcon-H1-7B-Base", stage="base", group="global", gpus=1, size_gb=15.2),
+    dict(name="Gemma-4-31B", repo="google/gemma-4-31B", stage="base", group="global", gpus=2, size_gb=62.5, tok_budget=4096),
+    dict(name="Falcon-H1-7B", repo="tiiuae/Falcon-H1-7B-Base", stage="base", group="global", gpus=1, size_gb=15.2, tok_budget=4096),
     dict(name="Aya-Expanse-8B", repo="CohereLabs/aya-expanse-8b", stage="post", group="global", gpus=1, size_gb=16.1),
-    dict(name="Command-R-32B", repo="CohereLabs/c4ai-command-r-08-2024", stage="post", group="global", gpus=2, size_gb=64.6),
+    dict(name="Command-R-32B", repo="CohereLabs/c4ai-command-r-08-2024", stage="post", group="global", gpus=2, size_gb=64.6, tok_budget=4096),
     dict(name="gpt-oss-20B", repo="openai/gpt-oss-20b", stage="post", group="global", gpus=2, size_gb=13.8, active_b=3.6),
     # --- Arabic-centric ---
     dict(name="Command-R7B-Arabic", repo="CohereLabs/c4ai-command-r7b-arabic-02-2025", stage="post", group="arabic", gpus=1, size_gb=16.1),

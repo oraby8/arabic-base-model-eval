@@ -14,7 +14,7 @@ Per-document bits (docs.parquet) and per-question correctness (mcq_items.parquet
 
 Usage: CUDA_VISIBLE_DEVICES=0 python src/diag.py --model Qwen3-8B [--max-docs 20] [--keep-weights]
 """
-import argparse, atexit, glob, json, math, os, shutil, time
+import argparse, atexit, gc, glob, json, math, os, shutil, time
 import numpy as np
 import pandas as pd
 import torch
@@ -25,10 +25,11 @@ B = os.environ["B"]
 ap = argparse.ArgumentParser()
 ap.add_argument("--model", required=True)
 ap.add_argument("--max-docs", type=int, default=0, help="smoke test: this many docs per set / questions per language")
-ap.add_argument("--tok-budget", type=int, default=12288, help="max padded tokens per forward batch")
+ap.add_argument("--tok-budget", type=int, default=None, help="max padded tokens per forward batch")
 ap.add_argument("--keep-weights", action="store_true", help="do not delete the downloaded weights afterwards")
 a = ap.parse_args()
 cfg = BY_NAME[a.model]
+a.tok_budget = a.tok_budget or cfg.get("tok_budget", 12288)
 out = f"{B}/results/models/{a.model}" + ("-smoke" if a.max_docs else "")
 os.makedirs(out, exist_ok=True)
 t0 = time.time()
@@ -89,9 +90,10 @@ def logprobs(seqs):
     except torch.OutOfMemoryError:
         if len(seqs) == 1:
             raise
-        torch.cuda.empty_cache()
-        h = len(seqs) // 2
-        return logprobs(seqs[:h]) + logprobs(seqs[h:])
+    # retry OUTSIDE the except block: inside it the traceback keeps the failed batch's activations alive
+    gc.collect(); torch.cuda.empty_cache()
+    h = len(seqs) // 2
+    return logprobs(seqs[:h]) + logprobs(seqs[h:])
 
 
 @torch.no_grad()
@@ -193,8 +195,8 @@ for bench, lang, qid, ctx, options, ans in mcq():
 score = np.full((len(items), 4), -np.inf)
 for bi in batches(np.array([len(s) for s in seqs])):
     for i, lp in zip(bi, logprobs([seqs[i] for i in bi])):
-        it, j, start, nch = meta[i]
-        score[it, j] = lp[start:].sum() / max(nch, 1)  # log-likelihood per character of the option
+        it, j, off, nch = meta[i]
+        score[it, j] = lp[off:].sum() / max(nch, 1)  # log-likelihood per character of the option
 mc = pd.DataFrame(items)
 mc["pred"] = score.argmax(1)
 mc["correct"] = mc.pred == mc.answer
