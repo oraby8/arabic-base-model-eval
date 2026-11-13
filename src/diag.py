@@ -1,8 +1,9 @@
 """Diagnose one candidate base model on held-out MSA and dialect text.
 
 Metrics (all on identical text for every model, data/eval.parquet):
-  BPC   bits per character = total -log2 p(text) / characters. The text is prefixed with the model's own
-        start token (the one its tokenizer adds by default; BOS, else EOS) so *every* character is predicted,
+  BPC   bits per character = total -log2 p(text) / characters. The text is prefixed with a start token so
+        *every* character is predicted. The start token (tokenizer default, BOS, EOS or a newline) is chosen per
+        model on held-out calibration text (data/calib.parquet), since the best one differs between models,
         and the denominator is the length of the original text, not of a decode. Tokenizer-independent.
   fertility  tokens per whitespace word, and chars/token (no special tokens).
   Belebele  zero-shot, 900 questions per variety (MSA, Egyptian, Najdi, English); Alyah: 1,173 Emirati questions. Context "P: {passage}\nQ: {question}\nA:" then " {option}";
@@ -72,10 +73,8 @@ t0 = time.time()
 
 # The start token this model was trained to see: whatever its tokenizer prepends by default.
 probe, bare = tok("سلام").input_ids, tok("سلام", add_special_tokens=False).input_ids
-prefix = probe[:len(probe) - len(bare)] if probe[-len(bare):] == bare else []
-if not prefix:
-    prefix = [tok.bos_token_id if tok.bos_token_id is not None else tok.eos_token_id]
-PAD = tok.pad_token_id if tok.pad_token_id is not None else prefix[0]
+default = probe[:len(probe) - len(bare)] if probe[-len(bare):] == bare else []
+PAD = tok.pad_token_id if tok.pad_token_id is not None else (tok.eos_token_id or 0)
 
 
 def enc(texts):
@@ -125,6 +124,26 @@ def batches(lengths):
         yield cur
 
 
+# ---------- start token, chosen on held-out calibration text ----------
+# The best conditioning token differs by model (Qwen3-Base, for instance, does much worse after <|endoftext|>
+# than after a newline). Each model gets the candidate that minimises its BPC on data/calib.parquet
+# (FineWeb-2 docs not in the evaluation set); the start token itself is never scored.
+cands = {"default": default, "bos": [tok.bos_token_id] if tok.bos_token_id is not None else [],
+         "eos": [tok.eos_token_id] if tok.eos_token_id is not None else [], "newline": enc(["\n"])[0]}
+cal = pd.read_parquet(f"{B}/data/calib.parquet").text.tolist()
+cal_ids, cal_chars, cal_bpc = enc(cal), sum(len(t) for t in cal), {}
+for name, pre in cands.items():
+    if not pre or pre in [cands[k] for k in cal_bpc]:
+        continue
+    seqs = [pre + s for s in cal_ids]
+    bits = 0.0
+    for bi in batches(np.array([len(s) for s in seqs])):
+        bits += sum(-lp[len(pre) - 1:].sum() for lp in logprobs([seqs[i] for i in bi])) / math.log(2)
+    cal_bpc[name] = float(bits / cal_chars)
+start = min(cal_bpc, key=cal_bpc.get)
+prefix = cands[start]
+print("start-token calibration (BPC):", {k: round(v, 4) for k, v in cal_bpc.items()}, "->", start, prefix, flush=True)
+
 # ---------- BPC + fertility ----------
 df = pd.read_parquet(f"{B}/data/eval.parquet")
 if a.max_docs:
@@ -136,7 +155,7 @@ assert max(len(s) for s in seqs) <= ctx, "a document exceeds the model context"
 bits = np.zeros(len(df))
 for bi in batches(np.array([len(s) for s in seqs])):
     for i, lp in zip(bi, logprobs([seqs[i] for i in bi])):
-        bits[i] = -lp.sum() / math.log(2)
+        bits[i] = -lp[len(prefix) - 1:].sum() / math.log(2)  # only the text's own tokens
 df["bits"], df["chars"] = bits, df.text.str.len()
 df["tokens"], df["words"] = [len(s) for s in ids], df.text.str.split().str.len()
 unk = tok.unk_token_id
@@ -186,7 +205,7 @@ acc.to_csv(f"{out}/mcq.csv", index=False)
 print(acc.round(3).to_string(index=False), flush=True)
 
 json.dump(dict(model=a.model, repo=cfg["repo"], stage=cfg["stage"], group=cfg["group"], n_params=n_params,
-               active_b=cfg.get("active_b"), prefix=prefix, vocab=len(tok), docs=len(df),
+               active_b=cfg.get("active_b"), prefix=prefix, start=start, start_calibration=cal_bpc, vocab=len(tok), docs=len(df),
                roundtrip_rate=float(df.roundtrip.mean()), unk_tokens=int(df.unk.sum()),
                max_doc_tokens=int(max(len(s) for s in ids)) + len(prefix),
                gpus=torch.cuda.device_count(), minutes_load=round(t_load / 60, 1), minutes_bpc=round(t_bpc / 60, 1),

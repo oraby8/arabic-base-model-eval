@@ -22,6 +22,8 @@ Target varieties: Egyptian, Saudi, Gulf/Emirati, with MSA and English as referen
 Speech transcripts: <<...>> annotation tags removed; utterances of one speaker joined into docs of ~1,000 chars;
 Omnilingual: all shards, at most 25 docs per speaker.
 Raw text, NFC, diacritics as written. Every doc <= 2,500 chars, so no model ever truncates.
+Also writes data/calib.parquet: 40 FineWeb-2 docs per MSA/Egyptian/Najdi that are not in the evaluation set,
+used only to choose each model's start token (diag.py).
 Usage: python src/prep_eval.py        (reads $TOK_EVAL for FLORES/PADIC/FineWeb, downloads the rest; writes $B/data/eval.parquet)
 """
 import os, re, unicodedata
@@ -31,7 +33,7 @@ import pyarrow.parquet as pq
 from huggingface_hub import hf_hub_download
 
 TOK, B = os.environ["TOK_EVAL"], os.environ["B"]
-MAXC, PIECE, CAP, SPEECH_DOC = 2500, 1500, 400_000, 1000
+MAXC, PIECE, CAP, SPEECH_DOC, CALIB = 2500, 1500, 400_000, 1000, 40
 DIALECT = {"arb_Arab": "MSA", "padic_msa": "MSA", "arz_Arab": "Egyptian", "ars_Arab": "Saudi", "acw_Arab": "Saudi",
            "afb_Arab": "Gulf", "shows": "Gulf", "alsanaa": "Gulf", "eng_Latn": "English"}
 OMNI = ["arz_Arab", "ars_Arab", "acw_Arab", "afb_Arab"]   # every shard is read: each holds only 2-3 speakers
@@ -103,13 +105,17 @@ w = pd.read_parquet(f"{P}/fineweb.parquet", columns=["sid", "variety", "text_raw
     pd.read_parquet(f"{TOK}/results/fineweb/aldi.parquet"), on=["sid", "variety"])
 w = w[((w.variety == "arb_Arab") & (w.aldi < 0.1)) | (w.variety.isin(["arz_Arab", "ars_Arab"]) & (w.aldi >= 0.3))]
 rng = np.random.default_rng(0)
+calib = []
 for v, g in w.groupby("variety"):
-    total = 0
-    for i in rng.permutation(len(g)):
+    total, order = 0, rng.permutation(len(g))
+    for n_used, i in enumerate(order, 1):
         for j, piece in enumerate(split(nfc(g.text_raw.iloc[i]))):
             rows.append((f"fineweb:{v}", "fineweb", v, f"fineweb:{v}:{g.sid.iloc[i]}:{j}", piece)); total += len(piece)
         if total >= CAP:
             break
+    # calibration docs (choice of start token in diag.py): FineWeb docs NOT used for evaluation
+    for i in order[n_used:n_used + CALIB]:
+        calib += [(v, piece) for piece in split(nfc(g.text_raw.iloc[i]))[:1]]
 
 # Omnilingual ASR corpus transcripts (text columns only; the audio is not read)
 from huggingface_hub import HfApi
@@ -138,5 +144,7 @@ assert df.dialect.notna().all() and df.text.str.len().max() <= MAXC, df.text.str
 assert df.doc.is_unique
 os.makedirs(f"{B}/data", exist_ok=True)
 df.to_parquet(f"{B}/data/eval.parquet", index=False)
+pd.DataFrame(calib, columns=["variety", "text"]).to_parquet(f"{B}/data/calib.parquet", index=False)
+print("calibration docs:", len(calib))
 s = df.assign(chars=df.text.str.len()).groupby(["dialect", "set"]).agg(docs=("doc", "size"), chars=("chars", "sum"))
 print(s.to_string()); print("total", len(df), "docs,", s.chars.sum(), "chars")
