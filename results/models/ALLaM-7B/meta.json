@@ -1,0 +1,27 @@
+{
+ "model": "ALLaM-7B",
+ "repo": "humain-ai/ALLaM-7B-Instruct-preview",
+ "stage": "post",
+ "group": "arabic",
+ "n_params": 7000559616,
+ "active_b": null,
+ "prefix": [
+  63619,
+  33
+ ],
+ "start": "newline",
+ "start_calibration": {
+  "bos": 1.411543369293213,
+  "eos": 1.395816683769226,
+  "newline": 1.3435624837875366
+ },
+ "vocab": 64000,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 746,
+ "gpus": 1,
+ "minutes_load": 12.6,
+ "minutes_bpc": 1.9,
+ "minutes_total": 5.3
+}

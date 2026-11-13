@@ -1,0 +1,26 @@
+{
+ "model": "Fanar-2-27B",
+ "repo": "QCRI/Fanar-2-27B-Instruct",
+ "stage": "post",
+ "group": "arabic",
+ "n_params": 27009346304,
+ "active_b": null,
+ "prefix": [
+  2
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.2856931686401367,
+  "eos": 1.3091965913772583,
+  "newline": 1.3092358112335205
+ },
+ "vocab": 262145,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 784,
+ "gpus": 2,
+ "minutes_load": 11.2,
+ "minutes_bpc": 10.1,
+ "minutes_total": 26.2
+}

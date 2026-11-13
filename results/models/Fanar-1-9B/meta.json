@@ -1,0 +1,26 @@
+{
+ "model": "Fanar-1-9B",
+ "repo": "QCRI/Fanar-1-9B",
+ "stage": "base",
+ "group": "arabic",
+ "n_params": 9243540992,
+ "active_b": null,
+ "prefix": [
+  2
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.3653178215026855,
+  "eos": 1.3769917488098145,
+  "newline": 1.3725383281707764
+ },
+ "vocab": 128256,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 902,
+ "gpus": 1,
+ "minutes_load": 11.3,
+ "minutes_bpc": 4.5,
+ "minutes_total": 11.0
+}

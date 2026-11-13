@@ -1,0 +1,26 @@
+{
+ "model": "Aya-Expanse-8B",
+ "repo": "CohereLabs/aya-expanse-8b",
+ "stage": "post",
+ "group": "global",
+ "n_params": 8028033024,
+ "active_b": null,
+ "prefix": [
+  5
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.520525574684143,
+  "eos": 1.704866886138916,
+  "newline": 1.580641508102417
+ },
+ "vocab": 255029,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1179,
+ "gpus": 1,
+ "minutes_load": 4.4,
+ "minutes_bpc": 3.4,
+ "minutes_total": 8.6
+}

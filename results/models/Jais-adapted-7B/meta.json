@@ -1,0 +1,26 @@
+{
+ "model": "Jais-adapted-7B",
+ "repo": "inception42/jais-adapted-7b",
+ "stage": "base",
+ "group": "arabic",
+ "n_params": 7000559616,
+ "active_b": null,
+ "prefix": [
+  1
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.467734456062317,
+  "eos": 1.4877432584762573,
+  "newline": 1.479515790939331
+ },
+ "vocab": 64000,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1112,
+ "gpus": 1,
+ "minutes_load": 16.7,
+ "minutes_bpc": 2.0,
+ "minutes_total": 5.5
+}

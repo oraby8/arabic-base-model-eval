@@ -1,0 +1,26 @@
+{
+ "model": "Gemma-3-12B",
+ "repo": "google/gemma-3-12b-pt",
+ "stage": "base",
+ "group": "global",
+ "n_params": 12187325040,
+ "active_b": null,
+ "prefix": [
+  2
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.316432237625122,
+  "eos": 2.852562665939331,
+  "newline": 2.815620183944702
+ },
+ "vocab": 262145,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 784,
+ "gpus": 1,
+ "minutes_load": 10.3,
+ "minutes_bpc": 5.4,
+ "minutes_total": 13.9
+}

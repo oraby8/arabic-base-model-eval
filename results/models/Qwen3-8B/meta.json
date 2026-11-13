@@ -1,0 +1,25 @@
+{
+ "model": "Qwen3-8B",
+ "repo": "Qwen/Qwen3-8B-Base",
+ "stage": "base",
+ "group": "global",
+ "n_params": 8190735360,
+ "active_b": null,
+ "prefix": [
+  198
+ ],
+ "start": "newline",
+ "start_calibration": {
+  "eos": 1.9774205684661865,
+  "newline": 1.6235350370407104
+ },
+ "vocab": 151669,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1095,
+ "gpus": 1,
+ "minutes_load": 15.5,
+ "minutes_bpc": 3.4,
+ "minutes_total": 8.7
+}

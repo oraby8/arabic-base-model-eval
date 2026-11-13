@@ -1,0 +1,26 @@
+{
+ "model": "Jais-3-0.9B",
+ "repo": "inception42/Jais-3-0.9B",
+ "stage": "base",
+ "group": "arabic",
+ "n_params": 1078285824,
+ "active_b": null,
+ "prefix": [
+  0
+ ],
+ "start": "bos",
+ "start_calibration": {
+  "bos": 1.597851037979126,
+  "eos": 1.7941583395004272,
+  "newline": 1.7205864191055298
+ },
+ "vocab": 64256,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 835,
+ "gpus": 1,
+ "minutes_load": 2.2,
+ "minutes_bpc": 0.5,
+ "minutes_total": 1.3
+}

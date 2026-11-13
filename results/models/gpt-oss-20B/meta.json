@@ -1,0 +1,26 @@
+{
+ "model": "gpt-oss-20B",
+ "repo": "openai/gpt-oss-20b",
+ "stage": "post",
+ "group": "global",
+ "n_params": 20914757184,
+ "active_b": 3.6,
+ "prefix": [
+  200002
+ ],
+ "start": "eos",
+ "start_calibration": {
+  "bos": 2.718944787979126,
+  "eos": 2.3385744094848633,
+  "newline": 2.684232473373413
+ },
+ "vocab": 200019,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 957,
+ "gpus": 2,
+ "minutes_load": 3.2,
+ "minutes_bpc": 3.4,
+ "minutes_total": 8.0
+}

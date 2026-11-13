@@ -89,7 +89,7 @@ md = ["# Ranking per dialect", "",
       "`post` = only an instruction-tuned checkpoint is public.", ""]
 md += ["## Overview (rank by BPC in each variety)", "",
        "| Model | Ckpt | Params (B) | MSA | Egyptian | Saudi | Gulf | Mean dialect rank |", "|---|---|---|---|---|---|---|---|"]
-S["mean_dialect_rank"] = S[[f"rank_{d}" for d in DIALECTS]].mean(1)
+S["mean_dialect_rank"] = S[[f"rank_{d}" for d in DIALECTS]].mean(axis=1)
 for _, r in S.sort_values("mean_dialect_rank").iterrows():
     cells = [f"{r[f'bpc_{d}']:.3f} (#{r[f'rank_{d}']})" for d in ARABIC]
     md.append(f"| {r.model} | {r.stage} | {size(r)} | " + " | ".join(cells) + f" | {r.mean_dialect_rank:.1f} |")
@@ -121,9 +121,9 @@ for ax, d in zip(axes, DIALECTS):
     for _, r in S.iterrows():
         x = r.active_b if pd.notna(r.active_b) else r.params_b
         ax.scatter(x, r[f"bpc_{d}"], s=55, color=COL[r.group], marker="o" if r.stage == "base" else "D", edgecolor=SURFACE, lw=1.5, zorder=3)
-        if r[f"rank_{d}"] <= 5 or r.model in ("Llama-3.2-1B",):
+        if r[f"rank_{d}"] <= 5 or r.model in ("Llama-3.2-1B", "Karnak-40B", "Nile-Chat-12B", "gpt-oss-20B"):
             ax.annotate(r.model, (x, r[f"bpc_{d}"]), xytext=(5, 2), textcoords="offset points", fontsize=7.5, color=INK)
-    ax.set_xscale("log"); ax.set_title(d, loc="left", fontsize=11, fontweight="bold", color=INK)
+    ax.set_xscale("log"); ax.set_xlim(0.8, 150); ax.set_title(d, loc="left", fontsize=11, fontweight="bold", color=INK)
     ax.grid(True, color=GRID, lw=0.8); ax.set_axisbelow(True)
     for s in ["top", "right"]:
         ax.spines[s].set_visible(False)
@@ -134,5 +134,5 @@ h = [plt.Line2D([], [], ls="", marker="o", color=COL["global"], ms=8), plt.Line2
 fig.legend(h, ["Global model", "Arabic-centric model", "Base checkpoint", "Only post-trained checkpoint public"],
            loc="upper right", bbox_to_anchor=(0.99, 0.93), ncol=4, frameon=False, fontsize=8.5)
 fig.suptitle("How well does each model already predict Egyptian, Saudi and Gulf Arabic?", x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
-fig.text(0.01, 0.015, "Same held-out text for every model. Labels: top 5 per dialect. BPC is tokenizer-independent.", fontsize=8, color=INK2)
+fig.text(0.01, 0.015, "Same held-out text for every model. Labels: top 5 per dialect plus notable outliers. BPC is tokenizer-independent.", fontsize=8, color=INK2)
 fig.savefig(f"{B}/results/bpc_vs_size.png", dpi=200, facecolor=SURFACE)

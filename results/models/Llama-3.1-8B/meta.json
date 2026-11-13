@@ -1,0 +1,26 @@
+{
+ "model": "Llama-3.1-8B",
+ "repo": "meta-llama/Llama-3.1-8B",
+ "stage": "base",
+ "group": "global",
+ "n_params": 8030261248,
+ "active_b": null,
+ "prefix": [
+  128000
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.6740455627441406,
+  "eos": 2.0103135108947754,
+  "newline": 1.682768702507019
+ },
+ "vocab": 128256,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 879,
+ "gpus": 1,
+ "minutes_load": 9.7,
+ "minutes_bpc": 3.1,
+ "minutes_total": 7.9
+}

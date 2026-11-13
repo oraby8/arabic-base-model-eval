@@ -1,0 +1,26 @@
+{
+ "model": "Nile-Chat-12B",
+ "repo": "MBZUAI-Paris/Nile-Chat-12B",
+ "stage": "post",
+ "group": "arabic",
+ "n_params": 11766034176,
+ "active_b": null,
+ "prefix": [
+  2
+ ],
+ "start": "bos",
+ "start_calibration": {
+  "bos": 1.4575237035751343,
+  "eos": 1.5001671314239502,
+  "newline": 1.4908545017242432
+ },
+ "vocab": 262145,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 784,
+ "gpus": 1,
+ "minutes_load": 9.9,
+ "minutes_bpc": 5.4,
+ "minutes_total": 14.0
+}

@@ -1,0 +1,26 @@
+{
+ "model": "Command-R7B-Arabic",
+ "repo": "CohereLabs/c4ai-command-r7b-arabic-02-2025",
+ "stage": "post",
+ "group": "arabic",
+ "n_params": 8028033024,
+ "active_b": null,
+ "prefix": [
+  5
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.442138671875,
+  "eos": 1.545145034790039,
+  "newline": 1.5091922283172607
+ },
+ "vocab": 255033,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1179,
+ "gpus": 1,
+ "minutes_load": 3.4,
+ "minutes_bpc": 3.3,
+ "minutes_total": 8.3
+}

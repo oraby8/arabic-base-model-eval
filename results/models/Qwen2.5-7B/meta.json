@@ -1,0 +1,25 @@
+{
+ "model": "Qwen2.5-7B",
+ "repo": "Qwen/Qwen2.5-7B",
+ "stage": "base",
+ "group": "global",
+ "n_params": 7615616512,
+ "active_b": null,
+ "prefix": [
+  151643
+ ],
+ "start": "eos",
+ "start_calibration": {
+  "eos": 1.6103224754333496,
+  "newline": 1.611243724822998
+ },
+ "vocab": 151665,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1095,
+ "gpus": 1,
+ "minutes_load": 10.0,
+ "minutes_bpc": 2.8,
+ "minutes_total": 7.3
+}

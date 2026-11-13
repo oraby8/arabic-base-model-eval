@@ -1,0 +1,26 @@
+{
+ "model": "Gemma-4-31B",
+ "repo": "google/gemma-4-31B",
+ "stage": "base",
+ "group": "global",
+ "n_params": 31273086512,
+ "active_b": null,
+ "prefix": [
+  2
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.2073183059692383,
+  "eos": 1.5578018426895142,
+  "newline": 1.5570048093795776
+ },
+ "vocab": 262144,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 784,
+ "gpus": 2,
+ "minutes_load": 12.8,
+ "minutes_bpc": 11.7,
+ "minutes_total": 30.3
+}

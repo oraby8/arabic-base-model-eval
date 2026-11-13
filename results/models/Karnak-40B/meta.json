@@ -1,0 +1,25 @@
+{
+ "model": "Karnak-40B",
+ "repo": "Applied-Innovation-Center/Karnak-40B-v1.0",
+ "stage": "base",
+ "group": "arabic",
+ "n_params": 40669136896,
+ "active_b": null,
+ "prefix": [
+  198
+ ],
+ "start": "newline",
+ "start_calibration": {
+  "eos": 1.643661379814148,
+  "newline": 1.5396438837051392
+ },
+ "vocab": 192726,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1056,
+ "gpus": 3,
+ "minutes_load": 16.7,
+ "minutes_bpc": 3.3,
+ "minutes_total": 8.6
+}

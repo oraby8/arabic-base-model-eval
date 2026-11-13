@@ -1,0 +1,25 @@
+{
+ "model": "Qwen3.5-9B",
+ "repo": "Qwen/Qwen3.5-9B-Base",
+ "stage": "base",
+ "group": "global",
+ "n_params": 8953803264,
+ "active_b": null,
+ "prefix": [
+  198
+ ],
+ "start": "newline",
+ "start_calibration": {
+  "eos": 1.838996410369873,
+  "newline": 1.6016768217086792
+ },
+ "vocab": 248077,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1020,
+ "gpus": 1,
+ "minutes_load": 7.1,
+ "minutes_bpc": 3.0,
+ "minutes_total": 7.9
+}

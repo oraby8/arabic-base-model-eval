@@ -1,0 +1,25 @@
+{
+ "model": "Falcon-H1-7B",
+ "repo": "tiiuae/Falcon-H1-7B-Base",
+ "stage": "base",
+ "group": "global",
+ "n_params": 7585648736,
+ "active_b": null,
+ "prefix": [
+  11
+ ],
+ "start": "eos",
+ "start_calibration": {
+  "eos": 1.5149306058883667,
+  "newline": 1.5222182273864746
+ },
+ "vocab": 130048,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 877,
+ "gpus": 1,
+ "minutes_load": 7.1,
+ "minutes_bpc": 4.7,
+ "minutes_total": 14.1
+}

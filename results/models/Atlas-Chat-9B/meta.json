@@ -1,0 +1,26 @@
+{
+ "model": "Atlas-Chat-9B",
+ "repo": "MBZUAI-Paris/Atlas-Chat-9B",
+ "stage": "post",
+ "group": "arabic",
+ "n_params": 9241705984,
+ "active_b": null,
+ "prefix": [
+  2
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.8777024745941162,
+  "eos": 2.843456983566284,
+  "newline": 2.7685961723327637
+ },
+ "vocab": 256000,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 902,
+ "gpus": 1,
+ "minutes_load": 10.1,
+ "minutes_bpc": 4.7,
+ "minutes_total": 11.7
+}

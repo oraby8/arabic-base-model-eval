@@ -1,0 +1,25 @@
+{
+ "model": "Karnak-6B",
+ "repo": "Applied-Innovation-Center/Karnak-6B-v1.0",
+ "stage": "base",
+ "group": "arabic",
+ "n_params": 5943650304,
+ "active_b": null,
+ "prefix": [
+  198
+ ],
+ "start": "newline",
+ "start_calibration": {
+  "eos": 3.1621432304382324,
+  "newline": 1.9028935432434082
+ },
+ "vocab": 192726,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1056,
+ "gpus": 1,
+ "minutes_load": 10.9,
+ "minutes_bpc": 2.4,
+ "minutes_total": 6.4
+}

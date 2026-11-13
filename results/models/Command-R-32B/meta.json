@@ -1,0 +1,26 @@
+{
+ "model": "Command-R-32B",
+ "repo": "CohereLabs/c4ai-command-r-08-2024",
+ "stage": "post",
+ "group": "global",
+ "n_params": 32296476672,
+ "active_b": null,
+ "prefix": [
+  5
+ ],
+ "start": "default",
+ "start_calibration": {
+  "default": 1.2296262979507446,
+  "eos": 1.3102288246154785,
+  "newline": 1.259400725364685
+ },
+ "vocab": 255034,
+ "docs": 4151,
+ "roundtrip_rate": 1.0,
+ "unk_tokens": 0,
+ "max_doc_tokens": 1179,
+ "gpus": 2,
+ "minutes_load": 15.2,
+ "minutes_bpc": 10.7,
+ "minutes_total": 26.9
+}
