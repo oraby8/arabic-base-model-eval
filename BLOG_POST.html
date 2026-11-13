@@ -1,0 +1,251 @@
+<p>My last post compared the <strong>tokenizers</strong> of 24 LLMs on MSA and Arabic dialects: how many tokens it takes to say the same thing.
+👉 <a href="https://github.com/oraby8/arabic-tokenizer-eval">https://github.com/oraby8/arabic-tokenizer-eval</a></p>
+<p>A cheap tokenizer is only half the story. Before you spend GPUs on continued pretraining or fine-tuning for a dialect, you want to start from the model that <strong>already knows that dialect best</strong>. So the next question was:</p>
+<p><strong>Which open model is the best starting point for Egyptian, Saudi and Gulf Arabic?</strong></p>
+<p>I tested 21 models, from 1B to 40B:</p>
+<ul>
+<li><strong>Global:</strong> Llama 3.1/3.2, Qwen 2.5/3/3.5, Gemma 3 and 4, Falcon-H1, Aya Expanse, Command-R, gpt-oss.</li>
+<li><strong>Arabic-centric:</strong> Jais, ALLaM, Fanar 1 and 2, Karnak, Command-R7B-Arabic, Atlas-Chat, Nile-Chat.</li>
+</ul>
+<p>Every dialect is ranked <strong>on its own</strong>: a model that is great at Egyptian isn't necessarily great at Gulf.</p>
+<p>Code and per-document results are open source:
+👉 <a href="https://github.com/oraby8/arabic-base-model-eval">https://github.com/oraby8/arabic-base-model-eval</a></p>
+<h2>The metric: bits per character</h2>
+<p>The main score is <strong>bits per character (BPC)</strong>: how surprised the model is by real dialect text, measured per character. Lower is better. It is the most direct measure of what a model knows about a language, and it is exactly what continued pretraining improves.</p>
+<p>Dividing by characters instead of tokens matters. A model whose tokenizer cuts Arabic into many small pieces doesn't look better or worse because of it. Every model reads the same text, so the scores are directly comparable.</p>
+<p>I also report:</p>
+<ul>
+<li><strong>Fertility</strong> (tokens per word): your training and inference bill.</li>
+<li><strong>Multiple-choice accuracy:</strong> Belebele for Egyptian and Najdi, and the new <strong>Alyah</strong> benchmark for Emirati.</li>
+<li><strong>Paired bootstrap confidence intervals</strong> on every gap between models, so "better" means statistically better.</li>
+</ul>
+<h2>The test data</h2>
+<table style="border-collapse:collapse;margin:1em 0;font-size:0.95em">
+<thead>
+<tr>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Dialect</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Text</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>Egyptian</strong></td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">FLORES+ (translated news), real Egyptian web text from FineWeb-2, and transcribed spontaneous speech from 15 speakers (Meta's Omnilingual ASR corpus)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>Saudi</strong></td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">FLORES+ Najdi, Najdi web text, and Najdi and Hijazi speech</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>Gulf</strong></td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gulf speech (Omnilingual), Emirati TV and podcast transcripts, and Emirati radio</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>MSA and English</strong></td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">References</td>
+</tr>
+</tbody>
+</table>
+<p>Web text was filtered with ALDi, a model that rates how dialectal a sentence is, so the "dialect" text really is dialectal. That gives 4,151 documents and 4.2M characters in total, and no model ever truncates a document.</p>
+<h2>Getting the measurement right</h2>
+<p>The usual quick script for this (<code style="background:#f3f3f3;padding:1px 4px">labels=input_ids</code>, divide by the decoded length, truncate at 2,048 tokens) is not comparable across models. I made three fixes:</p>
+<ol>
+<li><strong>Every character is scored.</strong> The first token of a text is never predicted, so a model with long first tokens gets free characters.</li>
+<li><strong>The denominator is the original text,</strong> not a decoded copy that some tokenizers normalize.</li>
+<li><strong>No truncation.</strong> With a fixed token limit, a model with a less efficient tokenizer is scored on less text.</li>
+</ol>
+<p>The surprise was the <strong>start token</strong>: what the model sees before the first word. It changes the score far more than I expected:</p>
+<table style="border-collapse:collapse;margin:1em 0;font-size:0.95em">
+<thead>
+<tr>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Model</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Bad start token</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Good start token</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-3-12B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">2.85 BPC (end-of-text)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>1.32</strong> (its BOS)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Llama-3.2-1B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">3.95 (end-of-text)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>2.03</strong> (its BOS)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Qwen3-8B-Base</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.98 (<code style="background:#f3f3f3;padding:1px 4px">&lt;|endoftext|&gt;</code>)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>1.62</strong> (a newline)</td>
+</tr>
+</tbody>
+</table>
+<p>Any single fixed rule would favour some models over others. So each model tries four start tokens (its default, BOS, EOS, a newline) on separate calibration text and keeps its best one. My first full run used a fixed rule, and Qwen3 and Karnak looked much worse than they really are.</p>
+<p><strong>Lesson:</strong> if you compare models by perplexity or BPC, check the start token. It can change the score by a factor of two.</p>
+<h2>1. One model wins every dialect: Gemma-4-31B</h2>
+<p><img style="max-width:100%;height:auto" alt="BPC vs model size for Egyptian, Saudi and Gulf" src="https://raw.githubusercontent.com/oraby8/arabic-base-model-eval/main/results/bpc_vs_size.png" /></p>
+<table style="border-collapse:collapse;margin:1em 0;font-size:0.95em">
+<thead>
+<tr>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left"></th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Egyptian</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Saudi</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gulf / Emirati</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>Gemma-4-31B</strong> (1.294)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>Gemma-4-31B</strong> (1.277)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>Gemma-4-31B</strong> (1.502)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">2</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Command-R-32B (1.323)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Command-R-32B (1.326)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Command-R-32B (1.569)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">3</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Fanar-2-27B (1.350)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Fanar-2-27B (1.343)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Fanar-2-27B (1.591)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">4</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-3-12B (1.396)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-3-12B (1.386)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-3-12B (1.635)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">5</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">ALLaM-7B (1.416)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">ALLaM-7B (1.410)</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">ALLaM-7B (1.684)</td>
+</tr>
+</tbody>
+</table>
+<p>Gemma-4-31B is first in all three dialects and in MSA. Every other model is significantly behind: no confidence interval of a gap touches zero. Its lead is widest on <strong>Gulf</strong>, the least-resourced dialect, and it also has the best Emirati multiple-choice score (Alyah, 50.6%).</p>
+<p>The next two have a catch for continued pretraining:</p>
+<ul>
+<li><strong>Command-R-32B</strong> only has a public chat checkpoint, and Cohere releases it for non-commercial use.</li>
+<li><strong>Fanar-2-27B</strong> is also chat-only (it is built on Gemma-3-27B). It has the best Belebele scores (52.4% Egyptian, 49.9% Najdi), but that lead is within the ±3-point noise.</li>
+</ul>
+<p><strong>Lesson:</strong> at around 30B, Gemma-4-31B is the clear starting point for all three dialects, and its base checkpoint is public.</p>
+<h2>2. At 7–12B: Gemma-3-12B, or ALLaM-7B for cheaper tokens</h2>
+<ul>
+<li><strong>Gemma-3-12B</strong> is the best <em>base</em> checkpoint below 30B in every dialect.</li>
+<li><strong>ALLaM-7B</strong> is right behind it (+0.02 to +0.05 BPC), with 40% fewer parameters.</li>
+<li><strong>ALLaM's tokenizer</strong> needs <strong>1.43 tokens per Egyptian word against 1.88 for Gemma</strong>, about 25% fewer tokens for the same text. That saving applies to every training step and every inference call.</li>
+<li><strong>Fanar-1-9B</strong> (base) is the next option.</li>
+</ul>
+<p><strong>Lesson:</strong> at mid size, choose between the best base model (Gemma-3-12B) and the cheapest tokens (ALLaM-7B). The quality gap between them is small.</p>
+<h2>3. Arabic-centric beats global, but not every Arabic model</h2>
+<p>At the same size, the best Arabic-centric models (ALLaM-7B, Fanar-1-9B) beat Qwen, Llama and Falcon-H1 by <strong>0.15–0.35 BPC on dialects</strong>. That is a big gap: going from Gemma-3-12B up to Gemma-4-31B gains only 0.10.</p>
+<p>But the "Arabic" label isn't a guarantee:</p>
+<ul>
+<li><strong>Karnak-40B</strong> is the largest model tested, but ranks 13th on Egyptian, behind 7–12B models. Its Arabic tokens were added on top of Qwen3's vocabulary.</li>
+<li><strong>Karnak-6B</strong> and <strong>Atlas-Chat-9B</strong> (built for Moroccan Darija) are near the bottom for all three dialects.</li>
+<li><strong>Qwen3 is not better than Qwen2.5 on dialects,</strong> and Qwen3.5 is only slightly better.</li>
+</ul>
+<p><strong>Lesson:</strong> check, don't trust the label. Size and an "Arabic" name predict dialect knowledge less well than how much real Arabic a model was trained on.</p>
+<h2>4. Translated benchmarks flatter some models</h2>
+<p>FLORES+ dialect text is professionally translated news. Compare it with real web text and real speech:</p>
+<table style="border-collapse:collapse;margin:1em 0;font-size:0.95em">
+<thead>
+<tr>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Egyptian BPC</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">FLORES (translated)</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Web</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Speech</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-4-31B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.300</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.306</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.275</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-3-12B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.391</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.423</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.374</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">ALLaM-7B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>1.332</strong></td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.446</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.469</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Nile-Chat-12B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.378</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.509</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">1.426</td>
+</tr>
+</tbody>
+</table>
+<p>On FLORES, ALLaM looks clearly better than Gemma-3-12B. On real Egyptian web text and speech, it's the other way round. Saudi shows the same pattern, and more strongly: on FLORES "Najdi", every model scores almost the same as on MSA (ratio about 1.02). The translation is close to MSA, so it barely tests the dialect at all.</p>
+<p><strong>Lesson:</strong> test on real dialect text, ideally spontaneous speech. Translated benchmarks reward formal-Arabic knowledge and hide the dialect gap.</p>
+<h2>5. Specialised models: real gains, narrow ones</h2>
+<p><strong>Nile-Chat-12B</strong>, built for Egyptian, has the <strong>smallest Egyptian-vs-MSA gap</strong> of all 21 models on the same sentences: 1.085, against about 1.19 for Gemma. It clearly learned Egyptian specifically, but its MSA and Gulf scores are much weaker, and it ranks 6th on Egyptian overall.</p>
+<p><strong>Lesson:</strong> a dialect-specialised model learns the dialect, but a strong general Arabic base model still predicts real Egyptian text better.</p>
+<h2>My recommendation</h2>
+<table style="border-collapse:collapse;margin:1em 0;font-size:0.95em">
+<thead>
+<tr>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">If you can train…</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Egyptian</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Saudi</th>
+<th style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gulf / Emirati</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>About 30B</strong></td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-4-31B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-4-31B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-4-31B</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>About 7–12B</strong></td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-3-12B, or ALLaM-7B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-3-12B, or ALLaM-7B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Gemma-3-12B, or ALLaM-7B</td>
+</tr>
+<tr>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left"><strong>About 1B</strong></td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Jais-3-0.9B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Jais-3-0.9B</td>
+<td style="border:1px solid #ccc;padding:6px 10px;text-align:left">Jais-3-0.9B</td>
+</tr>
+</tbody>
+</table>
+<h2>Caveats</h2>
+<ul>
+<li><strong>Chat checkpoints</strong> (Command-R, Fanar-2, ALLaM, Nile-Chat and others) are scored on raw text. Instruction tuning usually makes raw-text scores somewhat worse, so their base models would likely rank a little higher.</li>
+<li><strong>Gulf data is small</strong> (550K characters, all speech), so its ranking is clear but its absolute numbers aren't comparable with Egyptian or Saudi.</li>
+<li><strong>Contamination:</strong> FLORES+, Belebele and FineWeb-2 are public and may be in some models' training data. The speech transcripts are the least likely to have been seen.</li>
+<li><strong>Not tested:</strong> Llama-4-Scout, DeepSeek-V3 and Command-A were too large for my server's disk.</li>
+</ul>
+<h2>What We Learned</h2>
+<ol>
+<li><strong>Gemma-4-31B is the best starting point for Egyptian, Saudi and Gulf Arabic,</strong> with a public base checkpoint.</li>
+<li><strong>At 7–12B, Gemma-3-12B and ALLaM-7B</strong> are the options. ALLaM's tokenizer is about 25% cheaper.</li>
+<li><strong>The start token can double a model's score.</strong> Calibrate it per model before comparing perplexities.</li>
+<li><strong>Translated benchmarks hide the dialect gap.</strong> Real web text and speech change the ranking.</li>
+<li><strong>An "Arabic" label and size don't guarantee dialect knowledge.</strong> Measure it.</li>
+</ol>
+<h2>Open Questions</h2>
+<ul>
+<li>How much continued pretraining on real dialect text does it take to close the gap between ALLaM-7B and Gemma-4-31B?</li>
+<li>Does the cheaper ALLaM tokenizer pay off once you count total training cost, not just the starting quality?</li>
+<li>Which models would rank differently with base checkpoints instead of chat checkpoints?</li>
+</ul>
+<p>Code, data recipes and per-document results:
+👉 <a href="https://github.com/oraby8/arabic-base-model-eval">https://github.com/oraby8/arabic-base-model-eval</a></p>
+<h1>ArabicNLP #NLP #LLM #ArabicDialects #MachineLearning #AI #Research</h1>
