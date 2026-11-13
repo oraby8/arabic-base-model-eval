@@ -1,6 +1,6 @@
 # Which open LLM is the best starting point for Egyptian, Saudi and Gulf Arabic?
 
-A companion to [arabic-tokenizer-eval](../arabic-tokenizer-eval), which measured tokenizers. This project measures how well the models themselves already know each target dialect, to pick a base model for continued pretraining or fine-tuning. Each dialect is reported **on its own**: Egyptian, Saudi (Najdi and Hijazi) and Gulf/Emirati. MSA and English are references.
+A companion to [arabic-tokenizer-eval](https://github.com/oraby8/arabic-tokenizer-eval), which measured tokenizers. This project measures how well the models themselves already know each target dialect, to pick a base model for continued pretraining or fine-tuning. Each dialect is reported **on its own**: Egyptian, Saudi (Najdi and Hijazi) and Gulf/Emirati. MSA and English are references.
 
 **Results: [RESULTS.md](RESULTS.md)**, plus `results/ranking.md`, `results/bpc_by_set.md` and `results/bpc_vs_size.png`.
 
